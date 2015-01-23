@@ -9,7 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "body-parser": "^1.10.2",
     "express": "^4.11.0",
-    "body-parser": "^1.10.2"
+    "serialport": "^1.4.10"
   }
 }
