@@ -93,7 +93,7 @@ function run() {
     res.status(200).send('OK');
   });
 
-  function bucketPowerSpectrum(powerSpectArray){
+    function bucketPowerSpectrum(powerSpectArray){
     var bucketedPowerArray = [];
     var buffSize = powerSpectArray.length;
     var binFreqRange = MAX_FREQ / buffSize;   // 2048 / 22050 = ~10.8Hz
@@ -103,14 +103,19 @@ function run() {
 
     for (var i = 0; i < NUM_BANDS; i++){
       var max = 0;
-      var numBinsForBucket = Math.floor((freqBuckets[i] - prevFreq) / binFreqRange);
+      var numBinsForBucket;
+      if (i == freqBuckets.length - 1) {
+        numBinsForBucket = powerSpectArray.length - curPSIdx - 1;
+      } else {
+        numBinsForBucket = Math.floor((freqBuckets[i] - prevFreq) / binFreqRange);
+      }
       prevFreq = freqBuckets[i];
       for (var j = 0; j < numBinsForBucket; j++) { // pick max energy peak from the frequency bins within the range of numBinsForBucket
         if (powerSpectArray[j + curPSIdx] > max) {
           max = powerSpectArray[j + curPSIdx];
         }
-        curPSIdx++;
       }
+      curPSIdx = j;
       bucketedPowerArray[i] = max;
     }
     return bucketedPowerArray;
