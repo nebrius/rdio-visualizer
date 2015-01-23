@@ -6,6 +6,7 @@ var app = express();
 var SCALING_FACTOR = 1;
 var MAX_INTENSITY = 128;
 var NUM_BANDS = 8;
+var MAX_FREQ = 44100 / 2;
 
 var debug = process.argv[2] == '-d';
 
@@ -94,17 +95,25 @@ function run() {
 
   function bucketPowerSpectrum(powerSpectArray){
     var bucketedPowerArray = [];
-    var windowSize = Math.floor(powerSpectArray.length/NUM_BANDS);
+    var buffSize = powerSpectArray.length;
+    var binFreqRange = MAX_FREQ / buffSize;   // 2048 / 22050 = ~10.8Hz
+    var freqBuckets = [64, 128, 256, 512, 1024, 2048, 4096, 8192];
+    var curPSIdx = 0;
+    var prevFreq = 0;
+
     for (var i = 0; i < NUM_BANDS; i++){
       var max = 0;
-      for (var j = 0; j < windowSize; j++) {
-        if (powerSpectArray[j + i * windowSize] > max) {
-          max = powerSpectArray[j + i * windowSize];
+      var numBinsForBucket = Math.floor((freqBuckets[i] - prevFreq) / binFreqRange);
+      prevFreq = freqBuckets[i];
+      for (var j = 0; j < numBinsForBucket; j++) { // pick max energy peak from the frequency bins within the range of numBinsForBucket
+        if (powerSpectArray[j + curPSIdx] > max) {
+          max = powerSpectArray[j + curPSIdx];
         }
+        curPSIdx++;
       }
       bucketedPowerArray[i] = max;
     }
-    return bucketedPowerArray
+    return bucketedPowerArray;
   }
 
   function calculateLEDs(spectrumValues) {
@@ -113,10 +122,11 @@ function run() {
     for (var i = 0; i < spectrumValues.length; i++) {
       lightMatrix[i] = Math.min(Math.max(Math.round(spectrumValues[i] * SCALING_FACTOR), 0), 5);
       for (var j = 0; j < lightMatrix[i]; j++) {
-        ledMatrix[4 - j][i] = [0, Math.floor((j+1) * MAX_INTENSITY / 4), 0];
+        //ledMatrix[4 - j][i] = [0, Math.floor((j+1) * MAX_INTENSITY / 4), 0];
+        ledMatrix[4 - j][i] = [0, 36, 53];  // Rdio blue
       }
       for (; j < 5; j++) {
-        ledMatrix[4 - j][i] = [0, 0, 0];
+        ledMatrix[4 - j][i] = [20, 20, 20];
       }
     }
     return ledMatrix;
@@ -154,7 +164,7 @@ function run() {
       var vals = writeQueue.shift();
       console.log('\n--------');
       for (var i = 0; i < vals.length; i += 3) {
-        if (vals[i] || vals[i + 1] || vals[i + 2]) {
+        if (vals[i] != 20 && vals[i + 1] != 20 && vals[i + 2]) {
           process.stdout.write('*');
         } else {
           process.stdout.write('.');
