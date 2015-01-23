@@ -28,34 +28,34 @@ serialPort.on('open', function (err) {
     }
     var a1, a2, a3, b1, b2, b3, c1, c2, c3;
     if (lightState == 0) {
-      a1 = 40;
+      a1 = 200;
       a2 = 0;
       a3 = 0;
       b1 = 0;
-      b2 = 40;
+      b2 = 200;
       b3 = 0;
       c1 = 0;
       c2 = 0;
       c3 = 40;
     } else if (lightState == 1) {
       a1 = 0;
-      a2 = 40;
+      a2 = 200;
       a3 = 0;
       b1 = 0;
       b2 = 0;
-      b3 = 40;
-      c1 = 40;
+      b3 = 200;
+      c1 = 200;
       c2 = 0;
       c3 = 0;
     } else if (lightState == 2) {
       a1 = 0;
       a2 = 0;
-      a3 = 40;
-      b1 = 40;
+      a3 = 200;
+      b1 = 200;
       b2 = 0;
       b3 = 0;
       c1 = 0;
-      c2 = 40;
+      c2 = 200;
       c3 = 0;
     }
     writeToDevice(serializeRGB([
@@ -148,7 +148,7 @@ serialPort.on('open', function (err) {
       console.log('--------\n');
       var data = '';
       for (var i = 0; i < vals.length; i++) {
-        data += String.fromCharCode(vals[i]);
+        data += ('00' + vals[i].toString(16)).slice (-2);
       }
       serialPort.write(data, function() {
         setTimeout(function() {

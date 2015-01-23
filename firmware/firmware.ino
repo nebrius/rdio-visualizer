@@ -4,7 +4,7 @@
 #define PIN 6
 
 #define NUM_PIXELS 8 * 5
-#define SERIAL_BUFFER_LENGTH NUM_PIXELS * 3
+#define SERIAL_BUFFER_LENGTH NUM_PIXELS * 3 * 2
 #define SERIAL_BAUD_RATE 115200
 
 // When we setup the NeoPixel library, we tell it how many pixels, and which pin to use to send signals.
@@ -18,24 +18,27 @@ char serialBuffer[SERIAL_BUFFER_LENGTH];
 void setup() {
   Serial.begin(SERIAL_BAUD_RATE);
   pixels.begin();
-  for (int i = 0; i < NUM_PIXELS; i++) {
+  for (unsigned int i = 0; i < NUM_PIXELS; i++) {
     pixels.setPixelColor(i, 0, 0, 0);
   }
   pixels.show();
+  Serial.println(SERIAL_BUFFER_LENGTH, DEC);
+}
+
+int getNumFromBuffer(int pixel, int channel) {
+  char digit[3];
+  digit[0] = serialBuffer[pixel * 3 * 2 + channel * 2];
+  digit[1] = serialBuffer[pixel * 3 * 2 + channel * 2 + 1];
+  digit[2] = 0;
+  return strtol(digit, NULL, 16);
 }
 
 void processColors() {
-  for (int i = 0; i < NUM_PIXELS; i++) {
-    Serial.flush();
-    /*Serial.print(i, DEC);
-    Serial.print(": ");
-    Serial.print(serialBuffer[i * 3], DEC);
-    Serial.print(", ");
-    Serial.print(serialBuffer[i * 3 + 1], DEC);
-    Serial.print(", ");
-    Serial.print(serialBuffer[i * 3 + 2], DEC);
-    Serial.print("\n");*/
-    pixels.setPixelColor(i, pixels.Color(serialBuffer[i * 3], serialBuffer[i * 3 + 1], serialBuffer[i * 3 + 2]));
+  for (unsigned int i = 0; i < NUM_PIXELS; i++) {
+    getNumFromBuffer(i, 0);
+    getNumFromBuffer(i, 1);
+    getNumFromBuffer(i, 2);
+    pixels.setPixelColor(i, pixels.Color(getNumFromBuffer(i, 0), getNumFromBuffer(i, 1), getNumFromBuffer(i, 2)));
   }
   pixels.show();
 }
