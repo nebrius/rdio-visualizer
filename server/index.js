@@ -7,15 +7,25 @@ var SCALING_FACTOR = 1;
 var MAX_INTENSITY = 128;
 var NUM_BANDS = 8;
 
-var serialPort = new SerialPort('/dev/tty.usbmodem1421', {
-  baudrate: 115200
-});
+var debug = process.argv[2] == '-d';
 
-serialPort.on('open', function (err) {
-  if (err) {
-    console.log('failed to open: ' + err);
-    process.exit(1);
-  }
+if (debug) {
+  run();
+} else {
+  var serialPort = new SerialPort('/dev/tty.usbmodem1421', {
+    baudrate: 115200
+  });
+
+  serialPort.on('open', function(err) {
+    if (err) {
+      console.log('failed to open: ' + err);
+      process.exit(1);
+    }
+    run();
+  });
+}
+
+function run() {
 
   app.use(bodyParser.urlencoded({extended: false}));
   app.use(bodyParser.json());
@@ -138,7 +148,9 @@ serialPort.on('open', function (err) {
       if (!writeQueue.length) {
         return;
       }
-      busyWriting = true;
+      if (!debug) {
+        busyWriting = true;
+      }
       var vals = writeQueue.shift();
       console.log('\n--------');
       for (var i = 0; i < vals.length; i += 3) {
@@ -156,15 +168,17 @@ serialPort.on('open', function (err) {
       for (var i = 0; i < vals.length; i++) {
         data += ('00' + vals[i].toString(16)).slice (-2);
       }
-      serialPort.write(data, function() {
-        setTimeout(function() {
-          if (writeQueue.length) {
-            pump();
-          } else {
-            busyWriting = false;
-          }
-        }, 50);
-      });
+      if (!debug) {
+        serialPort.write(data, function() {
+          setTimeout(function() {
+            if (writeQueue.length) {
+              pump();
+            } else {
+              busyWriting = false;
+            }
+          }, 50);
+        });
+      }
     }
   }
 
@@ -177,4 +191,4 @@ serialPort.on('open', function (err) {
 
   });
 
-});
+}
