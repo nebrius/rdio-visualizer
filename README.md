@@ -7,7 +7,7 @@ This repo represents about 2/3 of the project. The remaining parts are Rdio spec
 
 In short, there are three parts to the system: the client, the server, and the Arduino firmware.
 
-The client code written for this project is specific to Rdio, but the output is pretty generic and could come from anywhere. The only thing the client needs to do is call the server with properly formatted FFT data.
+The client code written for this project is specific to Rdio, but the output is pretty generic and could come from anywhere. The only thing the client needs to do is call the server with properly formatted FFT data. For our specific hackday, we used the [Meyda](https://github.com/hughrawlinson/meyda) framework, and used the "powerSpectrum" feature.
  
 The server consists of a single HTTP endpoint, ```/```, which, when POSTed to, accepts url encoded data with a single parameter, 'powerSpectrum`, which is a JSON.stringified array of FFT raw data. The window size needs to be a power of two, ideally. The server takes this data and converts it to RGB raw data.
 
