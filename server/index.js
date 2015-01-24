@@ -3,11 +3,15 @@ var bodyParser = require('body-parser');
 var SerialPort = require('serialport').SerialPort;
 var app = express();
 
-var SCALING_FACTOR = 1;
-var MAX_INTENSITY = 128;
 var NUM_BANDS = 8;
+var BAND_HEIGHT = 5;
 var MAX_FREQ = 44100 / 2;
 var MAX_ENERGY = 35;
+
+var SIGNAL_COLOR = [0, 20, 71];
+var BACKGROUND_COLOR = [5, 5, 5];
+
+var FREQUENCY_BUCKETS = [64, 128, 256, 512, 1024, 2048, 4096, 8192];
 
 var debug = process.argv[2] == '-d';
 
@@ -38,53 +42,6 @@ function run() {
     next();
   });
 
-  /*var lightState = 0;
-  setInterval(function() {
-    lightState++;
-    if (lightState == 3) {
-      lightState = 0;
-    }
-    var a1, a2, a3, b1, b2, b3, c1, c2, c3;
-    if (lightState == 0) {
-      a1 = 200;
-      a2 = 0;
-      a3 = 0;
-      b1 = 0;
-      b2 = 200;
-      b3 = 0;
-      c1 = 0;
-      c2 = 0;
-      c3 = 40;
-    } else if (lightState == 1) {
-      a1 = 0;
-      a2 = 200;
-      a3 = 0;
-      b1 = 0;
-      b2 = 0;
-      b3 = 200;
-      c1 = 200;
-      c2 = 0;
-      c3 = 0;
-    } else if (lightState == 2) {
-      a1 = 0;
-      a2 = 0;
-      a3 = 200;
-      b1 = 200;
-      b2 = 0;
-      b3 = 0;
-      c1 = 0;
-      c2 = 200;
-      c3 = 0;
-    }
-    writeToDevice(serializeRGB([
-      [[a1, a2, a3], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0,  0,  0]],
-      [[0,  0,  0],  [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0,  0,  0]],
-      [[0,  0,  0],  [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0,  0,  0]],
-      [[0,  0,  0],  [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0,  0,  0]],
-      [[b1, b2, b3], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [c1, c2, c3]]
-    ]));
-  }, 1);*/
-
   app.post('/', function (req, res) {
     var powerSpectrum = JSON.parse(req.body['powerSpectrum']);
     var spectrumValues = bucketPowerSpectrum(powerSpectrum);
@@ -98,26 +55,25 @@ function run() {
     var bucketedPowerArray = [];
     var buffSize = powerSpectArray.length;
     var binFreqRange = MAX_FREQ / buffSize;   // 2048 / 22050 = ~10.8Hz
-    var freqBuckets = [64, 128, 256, 512, 1024, 2048, 4096, 8192];
     var curPSIdx = 0;
     var prevFreq = 0;
 
     for (var i = 0; i < NUM_BANDS; i++){
       var max = 0;
       var numBinsForBucket;
-      if (i == freqBuckets.length - 1) {
+      if (i == FREQUENCY_BUCKETS.length - 1) {
         numBinsForBucket = powerSpectArray.length - curPSIdx - 1;
       } else {
-        numBinsForBucket = Math.floor((freqBuckets[i] - prevFreq) / binFreqRange);
+        numBinsForBucket = Math.floor((FREQUENCY_BUCKETS[i] - prevFreq) / binFreqRange);
       }
-      prevFreq = freqBuckets[i];
+      prevFreq = FREQUENCY_BUCKETS[i];
       for (var j = 0; j < numBinsForBucket; j++) { // pick max energy peak from the frequency bins within the range of numBinsForBucket
         if (powerSpectArray[j + curPSIdx] > max) {
           max = powerSpectArray[j + curPSIdx];
         }
       }
       curPSIdx = j;
-      var decibelVal = Math.min(0, Math.max(-50, 20 * Math.log(max/MAX_ENERGY) / Math.log(10)));  // convert to dB
+      var decibelVal = Math.min(0, Math.max(-50, 20 * Math.log(max / MAX_ENERGY) / Math.log(10)));  // convert to dB
       bucketedPowerArray[i] = Math.round((decibelVal + 50) / 10);
     }
     return bucketedPowerArray;
@@ -127,13 +83,12 @@ function run() {
     var ledMatrix = [[], [], [], [], []];
     var lightMatrix = [];
     for (var i = 0; i < spectrumValues.length; i++) {
-      lightMatrix[i] = Math.min(Math.max(Math.round(spectrumValues[i] * SCALING_FACTOR), 0), 5);
+      lightMatrix[i] = Math.min(Math.max(Math.round(spectrumValues[i]), 0), BAND_HEIGHT);
       for (var j = 0; j < lightMatrix[i]; j++) {
-        //ledMatrix[4 - j][i] = [0, Math.floor((j+1) * MAX_INTENSITY / 4), 0];
-        ledMatrix[4 - j][i] = [0, 20, 71];
+        ledMatrix[BAND_HEIGHT - j - 1][i] = SIGNAL_COLOR;
       }
-      for (; j < 5; j++) {
-        ledMatrix[4 - j][i] = [5, 5, 5];
+      for (; j < BAND_HEIGHT; j++) {
+        ledMatrix[BAND_HEIGHT - j - 1][i] = BACKGROUND_COLOR;
       }
     }
     return ledMatrix;
@@ -142,8 +97,8 @@ function run() {
   function serializeRGB(ledMatrix) {
     var serializedVals = [];
     var counter = 0;
-    for (var i = 0; i < 5; i++) {
-      for (var j = 0; j < 8; j++) {
+    for (var i = 0; i < BAND_HEIGHT; i++) {
+      for (var j = 0; j < NUM_BANDS; j++) {
         serializedVals[counter++] = ledMatrix[i][j][0]; // Red Value
         serializedVals[counter++] = ledMatrix[i][j][1]; // Green Value
         serializedVals[counter++] = ledMatrix[i][j][2]; // Blue Value
@@ -171,7 +126,7 @@ function run() {
       var vals = writeQueue.shift();
       console.log('\n--------');
       for (var i = 0; i < vals.length; i += 3) {
-        if (vals[i] != 20 && vals[i + 1] != 20 && vals[i + 2]) {
+        if (vals[i] == SIGNAL_COLOR[0] && vals[i + 1] == SIGNAL_COLOR[1] && vals[i + 2] == SIGNAL_COLOR[2]) {
           process.stdout.write('*');
         } else {
           process.stdout.write('.');
