@@ -7,6 +7,7 @@ var SCALING_FACTOR = 1;
 var MAX_INTENSITY = 128;
 var NUM_BANDS = 8;
 var MAX_FREQ = 44100 / 2;
+var MAX_ENERGY = 35;
 
 var debug = process.argv[2] == '-d';
 
@@ -116,7 +117,8 @@ function run() {
         }
       }
       curPSIdx = j;
-      bucketedPowerArray[i] = max;
+      var decibelVal = Math.min(0, Math.max(-50, 20 * Math.log(max/MAX_ENERGY) / Math.log(10)));  // convert to dB
+      bucketedPowerArray[i] = Math.round((decibelVal + 50) / 10);
     }
     return bucketedPowerArray;
   }
