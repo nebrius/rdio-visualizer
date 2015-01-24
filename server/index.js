@@ -130,10 +130,10 @@ function run() {
       lightMatrix[i] = Math.min(Math.max(Math.round(spectrumValues[i] * SCALING_FACTOR), 0), 5);
       for (var j = 0; j < lightMatrix[i]; j++) {
         //ledMatrix[4 - j][i] = [0, Math.floor((j+1) * MAX_INTENSITY / 4), 0];
-        ledMatrix[4 - j][i] = [0, 36, 53];  // Rdio blue
+        ledMatrix[4 - j][i] = [0, 20, 71];
       }
       for (; j < 5; j++) {
-        ledMatrix[4 - j][i] = [20, 20, 20];
+        ledMatrix[4 - j][i] = [5, 5, 5];
       }
     }
     return ledMatrix;
